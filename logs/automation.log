@@ -50,3 +50,15 @@
 2026-03-25 16:21:33 INFO  Utils:112 - [TestNG] Running:
   C:\Users\Admin\Downloads\OpencartV121\OpencartV121\Master.xml
 
+2026-03-25 18:55:13 INFO  Utils:112 - [TestNG] Running:
+  C:\Users\Admin\Downloads\OpencartV121\OpencartV121\Master.xml
+
+2026-03-25 18:55:23 INFO  TC001_AccountRegistrationTest:15 - ***** Starting TC001_AccountRegistrationTest  ****
+2026-03-25 18:55:23 INFO  TC001_AccountRegistrationTest:21 - Clicked on MyAccount Link.. 
+2026-03-25 18:55:24 INFO  TC001_AccountRegistrationTest:24 - Clicked on Register Link.. 
+2026-03-25 18:55:24 INFO  TC001_AccountRegistrationTest:28 - Providing customer details...
+2026-03-25 18:55:26 INFO  TC001_AccountRegistrationTest:42 - Validating expected message..
+2026-03-25 18:55:26 INFO  TC001_AccountRegistrationTest:47 - Test passed
+2026-03-25 18:55:26 INFO  TC001_AccountRegistrationTest:56 - ***** Finished TC001_AccountRegistrationTest *****
+2026-03-25 18:55:32 INFO  TC002_LoginTest:16 - ****** Startign TC_002_LoginTest *****
+2026-03-25 18:55:34 INFO  TC002_LoginTest:41 - ****** Finished TC_002_LoginTest *****

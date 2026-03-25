@@ -15,11 +15,8 @@ import org.openqa.selenium.Platform;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.edge.EdgeDriver;
-import org.openqa.selenium.edge.EdgeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
@@ -87,51 +84,18 @@ public Properties p;
 		}
 		
 				
-//		if(p.getProperty("execution_env").equalsIgnoreCase("local"))
-//		{
-//
-//			switch(br.toLowerCase())
-//			{
-//			case "chrome" : driver=new ChromeDriver(); break;
-//			case "edge" : driver=new EdgeDriver(); break;
-//			case "firefox": driver=new FirefoxDriver(); break;
-//			default : System.out.println("Invalid browser name.."); return;
-//			}
-//		}
 		if(p.getProperty("execution_env").equalsIgnoreCase("local"))
 		{
-		    switch(br.toLowerCase())
-		    {
-		    case "chrome":
-		        ChromeOptions chromeoptions = new ChromeOptions();
-		        chromeoptions.addArguments("--headless");
-		        chromeoptions.addArguments("--no-sandbox");
-		        chromeoptions.addArguments("--disable-dev-shm-usage");
-		        chromeoptions.addArguments("--disable-gpu");
-		        chromeoptions.addArguments("--window-size=1920,1080");
-		        chromeoptions.addArguments("--remote-allow-origins=*");
-		        driver = new ChromeDriver(chromeoptions);
-		        break;
 
-		    case "edge":
-		        EdgeOptions edgeoptions = new EdgeOptions();
-		        edgeoptions.addArguments("--headless");
-		        edgeoptions.addArguments("--no-sandbox");
-		        edgeoptions.addArguments("--disable-dev-shm-usage");
-		        driver = new EdgeDriver(edgeoptions);
-		        break;
-
-		    case "firefox":
-		        FirefoxOptions firefoxoptions = new FirefoxOptions();
-		        firefoxoptions.addArguments("--headless");
-		        driver = new FirefoxDriver(firefoxoptions);
-		        break;
-
-		    default:
-		        System.out.println("Invalid browser name..");
-		        return;
-		    }
+			switch(br.toLowerCase())
+			{
+			case "chrome" : driver=new ChromeDriver(); break;
+			case "edge" : driver=new EdgeDriver(); break;
+			case "firefox": driver=new FirefoxDriver(); break;
+			default : System.out.println("Invalid browser name.."); return;
+			}
 		}
+		
 			
 		driver.manage().deleteAllCookies();
 		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
