@@ -29,7 +29,7 @@ import org.apache.logging.log4j.LogManager;  //Log4j
 import org.apache.logging.log4j.Logger;  //Log4j
 
 
-public class BaseClass {
+/*public class BaseClass {
 
 //public static WebDriver driver; //for capture screenshot make it static other wise remove static
 public WebDriver driver; 
@@ -146,4 +146,146 @@ public Properties p;
 	}
 	
 	
+}*/
+public class BaseClass {
+
+    public WebDriver driver;
+    public Logger logger;
+    public Properties p;
+
+    @BeforeClass(groups = {"Sanity", "Regression", "Master"})
+    @Parameters({"os", "browser"})
+    public void setup(String os, String br) throws IOException {
+
+        // Load config.properties
+        FileReader file = new FileReader("./src/test/resources/config.properties");
+        p = new Properties();
+        p.load(file);
+
+        logger = LogManager.getLogger(this.getClass());
+
+        // Detect GitHub Actions (CI=true is set automatically)
+        boolean isCI = "true".equalsIgnoreCase(System.getenv("CI"));
+
+        if (p.getProperty("execution_env").equalsIgnoreCase("remote")) {
+
+            DesiredCapabilities capabilities = new DesiredCapabilities();
+
+            // OS
+            switch (os.toLowerCase()) {
+                case "windows": capabilities.setPlatform(Platform.WINDOWS); break;
+                case "linux":   capabilities.setPlatform(Platform.LINUX);   break;
+                case "mac":     capabilities.setPlatform(Platform.MAC);     break;
+                default:
+                    System.out.println("No matching OS: " + os);
+                    return;
+            }
+
+            // Browser
+            switch (br.toLowerCase()) {
+                case "chrome":   capabilities.setBrowserName("chrome");        break;
+                case "edge":     capabilities.setBrowserName("MicrosoftEdge"); break;
+                case "firefox":  capabilities.setBrowserName("firefox");       break;
+                default:
+                    System.out.println("No matching browser: " + br);
+                    return;
+            }
+
+            driver = new RemoteWebDriver(new URL("http://localhost:4444/wd/hub"), capabilities);
+
+        } else if (p.getProperty("execution_env").equalsIgnoreCase("local")) {
+
+            switch (br.toLowerCase()) {
+
+                case "chrome": {
+                    ChromeOptions options = new ChromeOptions();
+                    if (isCI) {
+                        // Required for GitHub Actions (no display)
+                        options.addArguments("--headless=new");
+                        options.addArguments("--no-sandbox");
+                        options.addArguments("--disable-dev-shm-usage");
+                        options.addArguments("--disable-gpu");
+                        options.addArguments("--window-size=1920,1080");
+                    }
+                    driver = new ChromeDriver(options);
+                    break;
+                }
+
+                case "edge": {
+                    EdgeOptions options = new EdgeOptions();
+                    if (isCI) {
+                        options.addArguments("--headless=new");
+                        options.addArguments("--no-sandbox");
+                        options.addArguments("--disable-dev-shm-usage");
+                        options.addArguments("--disable-gpu");
+                        options.addArguments("--window-size=1920,1080");
+                    }
+                    driver = new EdgeDriver(options);
+                    break;
+                }
+
+                case "firefox": {
+                    FirefoxOptions options = new FirefoxOptions();
+                    if (isCI) {
+                        options.addArguments("--headless");
+                        options.addArguments("--width=1920");
+                        options.addArguments("--height=1080");
+                    }
+                    driver = new FirefoxDriver(options);
+                    break;
+                }
+
+                default:
+                    System.out.println("Invalid browser name: " + br);
+                    return;
+            }
+        }
+
+        driver.manage().deleteAllCookies();
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+        driver.get(p.getProperty("appURL"));
+
+        // Don't maximize in CI — headless has no window manager
+        if (!isCI) {
+            driver.manage().window().maximize();
+        }
+    }
+
+    @AfterClass(groups = {"Sanity", "Regression", "Master"})
+    public void tearDown() {
+        if (driver != null) {
+            driver.quit();
+        }
+    }
+
+    // --- Utility methods (unchanged) ---
+
+    public String randomeString() {
+        return RandomStringUtils.randomAlphabetic(5);
+    }
+
+    public String randomeNumber() {
+        return RandomStringUtils.randomNumeric(10);
+    }
+
+    public String randomeAlphaNumberic() {
+        return RandomStringUtils.randomAlphabetic(3) + "@" + RandomStringUtils.randomNumeric(3);
+    }
+
+    public String captureScreen(String tname) throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMddhhmmss").format(new Date());
+
+        TakesScreenshot takesScreenshot = (TakesScreenshot) driver;
+        File sourceFile = takesScreenshot.getScreenshotAs(OutputType.FILE);
+
+        // Use File.separator for cross-platform (Linux CI + Windows local)
+        String targetFilePath = System.getProperty("user.dir")
+                + File.separator + "screenshots"
+                + File.separator + tname + "_" + timeStamp + ".png";
+
+        File targetFile = new File(targetFilePath);
+        sourceFile.renameTo(targetFile);
+
+        return targetFilePath;
+    }
 }
