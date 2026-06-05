@@ -76,7 +76,7 @@ jobs:
         if: always()
         with:
           name: TestNG Results
-          path: target/surefire-reports/testng-results.xml
+          path: target/surefire-reports/TEST-*.xml
           reporter: 'java-junit'
           fail-on-error: false
 
