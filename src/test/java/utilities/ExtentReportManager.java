@@ -1,6 +1,6 @@
 package utilities;
 
-import java.awt.Desktop;
+//import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
 
@@ -118,12 +118,12 @@ public class ExtentReportManager implements ITestListener {
 		String pathOfExtentReport = System.getProperty("user.dir")+"\\reports\\"+repName;
 		File extentReport = new File(pathOfExtentReport);
 		
-		try {
+		/*try {
 			Desktop.getDesktop().browse(extentReport.toURI());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
+*/
 		//To send email with attachment
 		//sendEmail(sender email,sender password(encrypted),recipient email);
 		
