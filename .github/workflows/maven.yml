@@ -5,57 +5,54 @@
 # They are provided by a third-party and are governed by
 # separate terms of service, privacy policy, and support
 # documentation.
-name: Selenium Automation Testing
+name: Automation Regression Pipeline
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - master
 
   pull_request:
-    branches: [ "master" ]
+    branches:
+      - master
+
+  schedule:
+    - cron: '0 2 * * *'
 
 jobs:
-  build:
+
+  automation-test:
 
     runs-on: ubuntu-latest
 
     steps:
 
-    # Step 1: Checkout project code
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    # Step 2: Setup Java
-    - name: Set up JDK 21
+    - name: Setup Java 21
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
-        distribution: 'temurin'
+        distribution: temurin
+        java-version: 21
         cache: maven
 
-    # Step 3: Install Google Chrome
-    - name: Setup Chrome
-      uses: browser-actions/setup-chrome@v1
-
-    # Step 4: Build Maven Project
     - name: Build Project
-      run: mvn clean install
+      run: mvn clean install -DskipTests
 
-    # Step 5: Execute Selenium Test Cases
-    - name: Run Selenium Tests
-      run: mvn test
+    - name: Execute Smoke Suite
+      run: mvn test -DsuiteXmlFile=Smoke.xml
 
-    # Step 6: Upload TestNG Reports
-    - name: Upload Test Reports
+    - name: Upload Reports
+      if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: TestNGReports
+        name: TestNG-Reports
         path: test-output/
 
-    # Step 7: Upload Screenshots if Failed
     - name: Upload Screenshots
       if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: FailureScreenshots
+        name: Failure-Screenshots
         path: screenshots/
