@@ -6,15 +6,18 @@ on:
   pull_request:
     branches: [ master ]
   schedule:
-    - cron: '0 2 * * *'   # daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
 
 jobs:
   automation-test:
     runs-on: ubuntu-latest
 
     steps:
-
-      # ── SETUP: Checkout & Environment ──────────────────────────────────
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -32,18 +35,13 @@ jobs:
 
       - name: Verify Environment
         run: |
-          echo "Java Version:"
           java -version
-          echo -e "\nMaven Version:"
           mvn -version
-          echo -e "\nChrome Version:"
           google-chrome --version
 
-      # ── PREPARATION ───────────────────────────────────────────────────
       - name: Create output directories
         run: mkdir -p test-output screenshots logs
 
-      # ── BUILD & TEST ───────────────────────────────────────────────────
       - name: Build Project
         run: mvn clean install -DskipTests --no-transfer-progress
 
@@ -52,42 +50,18 @@ jobs:
         env:
           CI: true
 
-      # ── DEBUG: Check Test Reports ──────────────────────────────────────
-      - name: Verify Test Reports Generated
+      - name: List report files
         if: always()
-        run: |
-          echo "Checking for test reports..."
-          if [ -d "target/surefire-reports" ]; then
-            echo "✅ Reports directory exists"
-            ls -la target/surefire-reports/
-            if [ -f "target/surefire-reports/testng-results.xml" ]; then
-              echo "✅ TestNG results XML found"
-              head -20 target/surefire-reports/testng-results.xml
-            else
-              echo "⚠️  TestNG results XML not found"
-            fi
-          else
-            echo "❌ Reports directory not found"
-          fi
+        run: find target/surefire-reports -name "*.xml" 2>/dev/null || echo "No reports found"
 
-      # ── REPORT: Publish Test Results ───────────────────────────────────
       - name: Publish Test Results
-        uses: dorny/test-reporter@v1
+        uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
-          name: TestNG Results
-          path: target/surefire-reports/TEST-*.xml
-          reporter: 'java-junit'
-          fail-on-error: false
-
-      # ── ARTIFACTS: Upload Results ──────────────────────────────────────
-      - name: Upload Surefire Reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Surefire-Reports
-          path: target/surefire-reports/
-          retention-days: 7
+          files: target/surefire-reports/TEST-*.xml
+          check_name: TestNG Results
+          fail_on: nothing
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload TestNG Reports
         if: always()
@@ -113,7 +87,6 @@ jobs:
           path: logs/
           retention-days: 7
 
-      # ── NOTIFICATIONS: Slack ────────────────────────────────────────────
       - name: Notify Slack — Success
         if: success()
         uses: slackapi/slack-github-action@v1.26.0
@@ -128,11 +101,11 @@ jobs:
                   { "title": "Branch",  "value": "${{ github.ref_name }}",   "short": true },
                   { "title": "Trigger", "value": "${{ github.event_name }}", "short": true },
                   { "title": "Actor",   "value": "${{ github.actor }}",      "short": true },
-                  { "title": "Commit",  "value": "${{ github.event.head_commit.message }}", "short": false },
                   { "title": "Run",     "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>", "short": false }
                 ]
               }]
             }
+        env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
@@ -150,10 +123,10 @@ jobs:
                   { "title": "Branch",  "value": "${{ github.ref_name }}",   "short": true },
                   { "title": "Trigger", "value": "${{ github.event_name }}", "short": true },
                   { "title": "Actor",   "value": "${{ github.actor }}",      "short": true },
-                  { "title": "Commit",  "value": "${{ github.event.head_commit.message }}", "short": false },
                   { "title": "Run",     "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs 🔍>", "short": false }
                 ]
               }]
             }
+        env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
