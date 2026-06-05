@@ -1,1 +1,135 @@
+name: Selenium Automation Pipeline
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '0 2 * * *'   # daily at 2 AM UTC
+
+jobs:
+  automation-test:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ── 1. Checkout ────────────────────────────────────────────────
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # ── 2. Java ────────────────────────────────────────────────────
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      # ── 3. Chrome (required for Selenium) ──────────────────────────
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Verify Environment
+        run: |
+          java -version
+          mvn -version
+          google-chrome --version
+      # ── 4. Create folders (prevent artifact upload errors) ─────────
+      - name: Create output directories
+        run: mkdir -p test-output screenshots logs
+
+      # ── 5. Build ───────────────────────────────────────────────────
+      - name: Build Project
+        run: mvn clean install -DskipTests --no-transfer-progress
+
+      # ── 6. Run Tests ───────────────────────────────────────────────
+      - name: Execute Automation Tests
+        run: mvn test -DsuiteXmlFile=Master.xml --no-transfer-progress
+        env:
+          CI: true                         # triggers headless mode in BaseClass
+
+      # ── 7. Publish inline test results in the PR/Actions tab ───────
+      - name: Publish Test Results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: TestNG Results
+          path: target/surefire-reports/*.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      # ── 8. Upload artifacts ────────────────────────────────────────
+      - name: Upload TestNG Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestNG-Reports
+          path: test-output/
+          retention-days: 14
+
+      - name: Upload Screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Failure-Screenshots
+          path: screenshots/
+          retention-days: 7
+
+      - name: Upload Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Execution-Logs
+          path: logs/
+          retention-days: 7
+
+      # ── 9. Slack Notifications ─────────────────────────────────────
+      - name: Notify Slack — Success
+        if: success()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "✅ *Selenium Tests Passed*",
+              "attachments": [{
+                "color": "good",
+                "fields": [
+                  { "title": "Repo",    "value": "${{ github.repository }}", "short": true },
+                  { "title": "Branch",  "value": "${{ github.ref_name }}",   "short": true },
+                  { "title": "Trigger", "value": "${{ github.event_name }}", "short": true },
+                  { "title": "Actor",   "value": "${{ github.actor }}",      "short": true },
+                  { "title": "Commit",  "value": "${{ github.event.head_commit.message }}", "short": false },
+                  { "title": "Run",     "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>", "short": false }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify Slack — Failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "❌ *Selenium Tests FAILED*",
+              "attachments": [{
+                "color": "danger",
+                "fields": [
+                  { "title": "Repo",    "value": "${{ github.repository }}", "short": true },
+                  { "title": "Branch",  "value": "${{ github.ref_name }}",   "short": true },
+                  { "title": "Trigger", "value": "${{ github.event_name }}", "short": true },
+                  { "title": "Actor",   "value": "${{ github.actor }}",      "short": true },
+                  { "title": "Commit",  "value": "${{ github.event.head_commit.message }}", "short": false },
+                  { "title": "Run",     "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs 🔍>", "short": false }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
