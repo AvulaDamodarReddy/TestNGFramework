@@ -22,6 +22,16 @@
 					  <suiteXmlFiles>
 						  <suiteXmlFile>Master.xml</suiteXmlFile>
 					  </suiteXmlFiles>
+
+					  <!-- This generates JUnit-compatible XML alongside TestNG XML -->
+    <properties>
+      <property>
+        <name>usedefaultlisteners</name>
+        <value>true</value>
+      </property>
+    </properties>
+    <!-- Redirect JUnit-format reports here -->
+    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
 				  </configuration>
        		 </plugin>
 			 
