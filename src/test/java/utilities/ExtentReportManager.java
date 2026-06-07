@@ -238,7 +238,7 @@ public class ExtentReportManager implements ITestListener {
         test.log(Status.PASS, result.getName() + " got successfully executed");
     }
  
-    public void onTestFailure(ITestResult result) {
+    /*public void onTestFailure(ITestResult result) {
         test = extent.createTest(result.getTestClass().getName());
         test.assignCategory(result.getMethod().getGroups());
  
@@ -254,7 +254,33 @@ public class ExtentReportManager implements ITestListener {
             e1.printStackTrace();
         }
     }
- 
+ */
+public void onTestFailure(ITestResult result) {
+
+    test = extent.createTest(result.getTestClass().getName());
+
+    test.assignCategory(result.getMethod().getGroups());
+
+    test.log(Status.FAIL, result.getName() + " got failed");
+
+    test.log(Status.INFO, result.getThrowable());
+
+    try {
+
+        WebDriver driver = ((BaseClass) result.getInstance()).driver;
+
+        String imgPath = BaseClass.captureScreen(driver, result.getName());
+
+        if (imgPath != null && !imgPath.isEmpty()) {
+            test.addScreenCaptureFromPath(imgPath);
+        }
+
+    } catch (IOException e) {
+
+        e.printStackTrace();
+
+    }
+}
     public void onTestSkipped(ITestResult result) {
         test = extent.createTest(result.getTestClass().getName());
         test.assignCategory(result.getMethod().getGroups());
