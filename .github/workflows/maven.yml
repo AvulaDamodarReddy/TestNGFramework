@@ -87,7 +87,6 @@ jobs:
           path: logs/
           retention-days: 7
 
-
       - name: Notify Slack — Success
         if: success()
         uses: slackapi/slack-github-action@v1.26.0
