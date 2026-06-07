@@ -78,7 +78,6 @@ jobs:
           name: Failure-Screenshots
           path: screenshots/
           retention-days: 7
-          if-no-files-found: warn   # ✅ prevents failure when folder is empty
 
       - name: Upload Logs
         if: always()
@@ -107,7 +106,7 @@ jobs:
               }]
             }
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}   # ✅ correct
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
       - name: Notify Slack — Failure
@@ -129,5 +128,5 @@ jobs:
               }]
             }
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}   # ✅ correct
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
