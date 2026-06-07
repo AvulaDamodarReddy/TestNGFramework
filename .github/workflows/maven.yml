@@ -70,7 +70,6 @@ jobs:
           name: TestNG-Reports
           path: test-output/
           retention-days: 14
-
       - name: Upload Screenshots
         if: failure()
         uses: actions/upload-artifact@v4
@@ -78,7 +77,6 @@ jobs:
           name: Failure-Screenshots
           path: screenshots/
           retention-days: 7
-
       - name: Upload Logs
         if: always()
         uses: actions/upload-artifact@v4
