@@ -291,25 +291,25 @@ public class BaseClass {
         return RandomStringUtils.randomAlphabetic(3) + "@" + RandomStringUtils.randomNumeric(3);
     }
 
-    public String captureScreen(String tname) throws IOException {
-        if (driver == null) {
-            System.out.println(">>> captureScreen skipped — driver is null");
-            return "";
-        }
-
-        String timeStamp = new SimpleDateFormat("yyyyMMddhhmmss").format(new Date());
-        TakesScreenshot takesScreenshot = (TakesScreenshot) driver;
-        File sourceFile = takesScreenshot.getScreenshotAs(OutputType.FILE);
-
-        // Create screenshots dir if it doesn't exist
-        File screenshotsDir = new File(System.getProperty("user.dir") + File.separator + "screenshots");
-        if (!screenshotsDir.exists()) screenshotsDir.mkdirs();
-
-        String targetFilePath = screenshotsDir.getAbsolutePath()
-                + File.separator + tname + "_" + timeStamp + ".png";
-
-        File targetFile = new File(targetFilePath);
-        sourceFile.renameTo(targetFile);
-        return targetFilePath;
+  public static String captureScreen(WebDriver driver, String testName) {
+    // ✅ Add this null check
+    if (driver == null) {
+        System.out.println(">>> captureScreen skipped — driver is null");
+        return "";
     }
+
+    // ✅ Add path null check
+    String screenshotDir = System.getProperty("screenshot.path", 
+                               System.getProperty("user.dir") + "/screenshots");
+    if (screenshotDir == null || screenshotDir.isEmpty()) {
+        System.out.println(">>> captureScreen skipped — path not configured");
+        return "";
+    }
+
+    TakesScreenshot ts = (TakesScreenshot) driver;
+    File src = ts.getScreenshotAs(OutputType.FILE);
+    String dest = screenshotDir + "/" + testName + "_" + System.currentTimeMillis() + ".png";
+    FileUtils.copyFile(src, new File(dest));
+    return dest;
+}
 }
