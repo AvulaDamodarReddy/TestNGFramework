@@ -290,27 +290,32 @@ public class BaseClass {
     public String randomeAlphaNumberic() {
         return RandomStringUtils.randomAlphabetic(3) + "@" + RandomStringUtils.randomNumeric(3);
     }
+	public static String captureScreen(WebDriver driver, String testName) throws IOException {
 
-  public static String captureScreen(WebDriver driver, String testName) {
-    // ✅ Add this null check
     if (driver == null) {
         System.out.println(">>> captureScreen skipped — driver is null");
         return "";
     }
 
-    // ✅ Add path null check
-    String screenshotDir = System.getProperty("screenshot.path", 
-                               System.getProperty("user.dir") + "/screenshots");
-    if (screenshotDir == null || screenshotDir.isEmpty()) {
-        System.out.println(">>> captureScreen skipped — path not configured");
-        return "";
+    String screenshotDir = System.getProperty(
+            "screenshot.path",
+            System.getProperty("user.dir") + "/screenshots");
+
+    File dir = new File(screenshotDir);
+    if (!dir.exists()) {
+        dir.mkdirs();
     }
 
     TakesScreenshot ts = (TakesScreenshot) driver;
     File src = ts.getScreenshotAs(OutputType.FILE);
-    String dest = screenshotDir + "/" + testName + "_" + System.currentTimeMillis() + ".png";
+
+    String dest = screenshotDir + "/" + testName + "_"
+            + System.currentTimeMillis() + ".png";
+
     FileUtils.copyFile(src, new File(dest));
+
     return dest;
 }
 
-}
+
+ 
