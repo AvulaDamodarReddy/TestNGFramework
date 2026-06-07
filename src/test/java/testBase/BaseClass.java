@@ -160,38 +160,41 @@ public class BaseClass {
     @Parameters({"os", "browser"})
     public void setup(String os, String br) throws IOException {
 
-        // Load config.properties
         FileReader file = new FileReader("./src/test/resources/config.properties");
         p = new Properties();
         p.load(file);
 
         logger = LogManager.getLogger(this.getClass());
 
-        // Detect GitHub Actions (CI=true is set automatically)
+        // CI detection — also supports manual override via config
         boolean isCI = "true".equalsIgnoreCase(System.getenv("CI"));
+        boolean headless = isCI ||
+                "true".equalsIgnoreCase(p.getProperty("headless", "false"));
+
+        System.out.println(">>> OS: " + os);
+        System.out.println(">>> Browser: " + br);
+        System.out.println(">>> execution_env: " + p.getProperty("execution_env"));
+        System.out.println(">>> isCI: " + isCI);
+        System.out.println(">>> headless: " + headless);
 
         if (p.getProperty("execution_env").equalsIgnoreCase("remote")) {
 
             DesiredCapabilities capabilities = new DesiredCapabilities();
 
-            // OS
             switch (os.toLowerCase()) {
                 case "windows": capabilities.setPlatform(Platform.WINDOWS); break;
                 case "linux":   capabilities.setPlatform(Platform.LINUX);   break;
                 case "mac":     capabilities.setPlatform(Platform.MAC);     break;
                 default:
-                    System.out.println("No matching OS: " + os);
-                    return;
+                    System.out.println(">>> No matching OS: " + os); return;
             }
 
-            // Browser
             switch (br.toLowerCase()) {
-                case "chrome":   capabilities.setBrowserName("chrome");        break;
-                case "edge":     capabilities.setBrowserName("MicrosoftEdge"); break;
-                case "firefox":  capabilities.setBrowserName("firefox");       break;
+                case "chrome":  capabilities.setBrowserName("chrome");        break;
+                case "edge":    capabilities.setBrowserName("MicrosoftEdge"); break;
+                case "firefox": capabilities.setBrowserName("firefox");       break;
                 default:
-                    System.out.println("No matching browser: " + br);
-                    return;
+                    System.out.println(">>> No matching browser: " + br); return;
             }
 
             driver = new RemoteWebDriver(new URL("http://localhost:4444/wd/hub"), capabilities);
@@ -202,13 +205,13 @@ public class BaseClass {
 
                 case "chrome": {
                     ChromeOptions options = new ChromeOptions();
-                    if (isCI) {
-                        // Required for GitHub Actions (no display)
+                    options.addArguments("--no-sandbox");
+                    options.addArguments("--disable-dev-shm-usage");
+                    options.addArguments("--disable-gpu");
+                    options.addArguments("--window-size=1920,1080");
+                    if (headless) {
                         options.addArguments("--headless=new");
-                        options.addArguments("--no-sandbox");
-                        options.addArguments("--disable-dev-shm-usage");
-                        options.addArguments("--disable-gpu");
-                        options.addArguments("--window-size=1920,1080");
+                        System.out.println(">>> Chrome running in HEADLESS mode");
                     }
                     driver = new ChromeDriver(options);
                     break;
@@ -216,12 +219,12 @@ public class BaseClass {
 
                 case "edge": {
                     EdgeOptions options = new EdgeOptions();
-                    if (isCI) {
+                    options.addArguments("--no-sandbox");
+                    options.addArguments("--disable-dev-shm-usage");
+                    options.addArguments("--disable-gpu");
+                    options.addArguments("--window-size=1920,1080");
+                    if (headless) {
                         options.addArguments("--headless=new");
-                        options.addArguments("--no-sandbox");
-                        options.addArguments("--disable-dev-shm-usage");
-                        options.addArguments("--disable-gpu");
-                        options.addArguments("--window-size=1920,1080");
                     }
                     driver = new EdgeDriver(options);
                     break;
@@ -229,7 +232,7 @@ public class BaseClass {
 
                 case "firefox": {
                     FirefoxOptions options = new FirefoxOptions();
-                    if (isCI) {
+                    if (headless) {
                         options.addArguments("--headless");
                         options.addArguments("--width=1920");
                         options.addArguments("--height=1080");
@@ -239,19 +242,34 @@ public class BaseClass {
                 }
 
                 default:
-                    System.out.println("Invalid browser name: " + br);
-                    return;
+                    System.out.println(">>> Invalid browser: " + br); return;
             }
+
+        } else {
+            throw new RuntimeException(
+                ">>> Unknown execution_env: " + p.getProperty("execution_env")
+                + " — must be 'local' or 'remote'"
+            );
+        }
+
+        // Fail fast with clear message if driver not created
+        if (driver == null) {
+            throw new RuntimeException(
+                ">>> Driver is NULL after setup! " +
+                "execution_env=" + p.getProperty("execution_env") +
+                ", browser=" + br
+            );
         }
 
         driver.manage().deleteAllCookies();
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
         driver.get(p.getProperty("appURL"));
 
-        // Don't maximize in CI — headless has no window manager
-        if (!isCI) {
+        if (!headless) {
             driver.manage().window().maximize();
         }
+
+        System.out.println(">>> Driver ready: " + driver.getClass().getSimpleName());
     }
 
     @AfterClass(groups = {"Sanity", "Regression", "Master"})
@@ -260,8 +278,6 @@ public class BaseClass {
             driver.quit();
         }
     }
-
-    // --- Utility methods (unchanged) ---
 
     public String randomeString() {
         return RandomStringUtils.randomAlphabetic(5);
@@ -276,19 +292,24 @@ public class BaseClass {
     }
 
     public String captureScreen(String tname) throws IOException {
-        String timeStamp = new SimpleDateFormat("yyyyMMddhhmmss").format(new Date());
+        if (driver == null) {
+            System.out.println(">>> captureScreen skipped — driver is null");
+            return "";
+        }
 
+        String timeStamp = new SimpleDateFormat("yyyyMMddhhmmss").format(new Date());
         TakesScreenshot takesScreenshot = (TakesScreenshot) driver;
         File sourceFile = takesScreenshot.getScreenshotAs(OutputType.FILE);
 
-        // Use File.separator for cross-platform (Linux CI + Windows local)
-        String targetFilePath = System.getProperty("user.dir")
-                + File.separator + "screenshots"
+        // Create screenshots dir if it doesn't exist
+        File screenshotsDir = new File(System.getProperty("user.dir") + File.separator + "screenshots");
+        if (!screenshotsDir.exists()) screenshotsDir.mkdirs();
+
+        String targetFilePath = screenshotsDir.getAbsolutePath()
                 + File.separator + tname + "_" + timeStamp + ".png";
 
         File targetFile = new File(targetFilePath);
         sourceFile.renameTo(targetFile);
-
         return targetFilePath;
     }
 }
