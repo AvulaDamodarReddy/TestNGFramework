@@ -8,35 +8,15 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      selenium-hub:
-        image: selenium/hub:4.20.0
-        ports:
-          - 4444:4444
-
-      chrome:
-        image: selenium/node-chrome:4.20.0
-        shm_size: 2gb
-        env:
-          SE_EVENT_BUS_HOST: selenium-hub
-          SE_EVENT_BUS_PUBLISH_PORT: 4442
-          SE_EVENT_BUS_SUBSCRIBE_PORT: 4443
-        options: >-
-          --shm-size=2g
-
-      firefox:
-        image: selenium/node-firefox:4.20.0
-        shm_size: 2gb
-        env:
-          SE_EVENT_BUS_HOST: selenium-hub
-          SE_EVENT_BUS_PUBLISH_PORT: 4442
-          SE_EVENT_BUS_SUBSCRIBE_PORT: 4443
-        options: >-
-          --shm-size=2g
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Start Docker Compose (Grid)
+        run: docker compose up -d
+
+      - name: Wait for Grid
+        run: sleep 20
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -45,10 +25,11 @@ jobs:
           java-version: 17
           cache: maven
 
-      - name: Build Project
-        run: mvn clean install -DskipTests
-
-      - name: Run Tests on Grid
+      - name: Run Tests
         run: mvn test -DsuiteXmlFile=Master.xml
         env:
-          GRID_URL: http://selenium-hub:4444
+          GRID_URL: http://localhost:4444
+
+      - name: Stop Grid
+        if: always()
+        run: docker compose down
