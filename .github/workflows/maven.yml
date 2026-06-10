@@ -12,16 +12,15 @@ permissions:
   contents: read
   checks: write
   pull-requests: write
-
 jobs:
   automation-test:
     runs-on: ubuntu-latest
-services:
+
+    services:
       selenium:
         image: selenium/standalone-chrome
         ports:
           - 4444:4444
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
