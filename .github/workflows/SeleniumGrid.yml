@@ -1,5 +1,5 @@
 
-name: Selenium Automation Pipeline
+name: Selenium Grid Automation Pipeline
 
 on:
   push:
