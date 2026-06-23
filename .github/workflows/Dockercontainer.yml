@@ -1,0 +1,139 @@
+name: Selenium Automation Pipeline
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Verify Environment
+        run: |
+          java -version
+          mvn -version
+
+      - name: Build Project
+        run: mvn clean install -DskipTests --no-transfer-progress
+
+      - name: Create Output Directories
+        run: mkdir -p test-output screenshots logs
+
+      - name: Start Selenium Grid (Docker Compose)
+        run: docker compose up -d
+
+      - name: Wait for Grid
+        run: |
+          for i in {1..30}; do
+            curl -s http://localhost:4444/wd/hub/status && echo "Grid is UP" && break
+            echo "Waiting for Grid..."
+            sleep 5
+          done
+
+      - name: Execute Automation Tests
+        run: mvn test -DsuiteXmlFile=Master.xml --no-transfer-progress
+        env:
+          GRID_URL: http://localhost:4444
+          CI: true
+
+      - name: Stop Grid
+        if: always()
+        run: docker compose down -v
+
+      - name: List Report Files
+        if: always()
+        run: find target/surefire-reports -name "*.xml" 2>/dev/null || echo "No reports found"
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: target/surefire-reports/TEST-*.xml
+          check_name: TestNG Results
+          fail_on: nothing
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload TestNG Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestNG-Reports
+          path: test-output/
+          retention-days: 14
+
+      - name: Upload Screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Failure-Screenshots
+          path: screenshots/
+          retention-days: 7
+
+      - name: Upload Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Execution-Logs
+          path: logs/
+          retention-days: 7
+
+      - name: Notify Slack - Success
+        if: success()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "✅ *Selenium Tests Passed*",
+              "attachments": [{
+                "color": "good",
+                "fields": [
+                  { "title": "Repo", "value": "${{ github.repository }}", "short": true },
+                  { "title": "Branch", "value": "${{ github.ref_name }}", "short": true },
+                  { "title": "Run", "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>", "short": false }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify Slack - Failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "❌ *Selenium Tests FAILED*",
+              "attachments": [{
+                "color": "danger",
+                "fields": [
+                  { "title": "Repo", "value": "${{ github.repository }}", "short": true },
+                  { "title": "Branch", "value": "${{ github.ref_name }}", "short": true },
+                  { "title": "Run", "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs 🔍>", "short": false }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
