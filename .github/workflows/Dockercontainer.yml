@@ -1,4 +1,4 @@
-name: Selenium Automation Pipeline
+name: Automation Docker Container Pipeline
 
 on:
   push:
