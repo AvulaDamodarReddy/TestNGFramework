@@ -1,5 +1,5 @@
 
-name: Selenium Automation Pipeline
+name: Opencart Application Automation Pipeline
 
 on:
   push:
