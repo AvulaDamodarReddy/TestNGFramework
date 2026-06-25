@@ -1,14 +1,16 @@
-
 name: Selenium Grid Automation Pipeline
 
 on:
+  workflow_dispatch:   # Manual trigger
+
   push:
     branches: [ master ]
+
   pull_request:
     branches: [ master ]
+
   schedule:
     - cron: '0 2 * * *'
-
 permissions:
   contents: read
   checks: write
@@ -127,7 +129,7 @@ jobs:
                   { "title": "Branch",  "value": "${{ github.ref_name }}",   "short": true },
                   { "title": "Trigger", "value": "${{ github.event_name }}", "short": true },
                   { "title": "Actor",   "value": "${{ github.actor }}",      "short": true },
-                  { "title": "Run",     "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs 🔍>", "short": false }
+                  { "title": "Run",     "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>", "short": false }
                 ]
               }]
             }
